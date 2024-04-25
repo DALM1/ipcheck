@@ -3,24 +3,23 @@ use strict;
 use warnings;
 use Net::ARP;
 
-# Fonction pour récupérer les adresses IP actives sur le même réseau
+
 sub find_active_ips {
-    my $interface = shift; # Interface réseau à utiliser
+    my $interface = shift; 
     my %active_ips;
 
-   
-    my $ip_and_mask = `ip addr show $interface | grep 'inet '`;
-    my ($ip) = $ip_and_mask =~ /inet ([\d.]+)/;
-    my ($mask) = $ip_and_mask =~ /\/(\d{1,2})/;
 
-    # Calculer l'adresse IP du réseau
+    my $ip = `ifconfig $interface | grep 'inet ' | awk '{print \$2}'`;
+    chomp($ip);
+
+   
     my ($network) = $ip =~ /^(\d+\.\d+\.\d+)\.\d+$/;
     my $subnet = "$network.0";
 
-   
+    
     for my $i (1..254) {
         my $target_ip = "$subnet.$i";
-        my $mac = Net::ARP::arp_mac($interface, $target_ip);
+        my $mac = Net::ARP::arp_mac($target_ip);
         if ($mac) {
             $active_ips{$target_ip} = $mac;
         }
@@ -30,7 +29,7 @@ sub find_active_ips {
 }
 
 
-my $interface = 'wlan0';  sous Linux
+my $interface = 'en0'; 
 
 
 my %active_ips = find_active_ips($interface);
