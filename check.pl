@@ -1,41 +1,28 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Net::ARP;
-
 
 sub find_active_ips {
-    my $interface = shift; 
+    my $interface = shift;
     my %active_ips;
 
+    my @arp_output = `arp -a -i $interface`;
 
-    my $ip = `ifconfig $interface | grep 'inet ' | awk '{print \$2}'`;
-    chomp($ip);
-
-   
-    my ($network) = $ip =~ /^(\d+\.\d+\.\d+)\.\d+$/;
-    my $subnet = "$network.0";
-
-    
-    for my $i (1..254) {
-        my $target_ip = "$subnet.$i";
-        my $mac = Net::ARP::arp_mac($target_ip);
-        if ($mac) {
-            $active_ips{$target_ip} = $mac;
+    foreach my $line (@arp_output) {
+        if ($line =~ /\((\d+\.\d+\.\d+\.\d+)\) at ([0-9a-f:]+)/i) {
+            my ($ip, $mac) = ($1, $2);
+            $active_ips{$ip} = $mac;
         }
     }
 
     return %active_ips;
 }
 
-
-my $interface = 'en0'; 
-
+my $interface = 'en0';
 
 my %active_ips = find_active_ips($interface);
 
-
-print "Adresses IP actives sur le même réseau Wi-Fi :\n";
+print "Adresses IP actives sur le réseau $interface :\n";
 foreach my $ip (keys %active_ips) {
     my $mac = $active_ips{$ip};
     print "IP: $ip, MAC: $mac\n";
